@@ -61,7 +61,8 @@ namespace TimeBasedRanks
             switch (TShock.Config.StorageType.ToLower())
             {
                 case "sqlite":
-                    DB = new SqliteConnection(string.Format("uri=file://{0},Version=3", Path.Combine(TShock.SavePath, "TBRData.sqlite")));
+                    DB = new SqliteConnection(string.Format("uri=file://{0},Version=3",
+                        Path.Combine(TShock.SavePath, "TBRData.sqlite")));
                     break;
                 case "mysql":
                     try
@@ -102,6 +103,9 @@ namespace TimeBasedRanks
         /// <param name="args"></param>
         private void OnGreet(GreetPlayerEventArgs args)
         {
+            if (TShock.Players[args.Who] == null)
+                return;
+
             if (!TShock.Config.DisableUUIDLogin)
             {
                 if (TShock.Players[args.Who].IsLoggedIn)
@@ -127,6 +131,9 @@ namespace TimeBasedRanks
 
         private static void OnLeave(LeaveEventArgs args)
         {
+            if (TShock.Players[args.Who] == null)
+                return;
+
             if (TShock.Players[args.Who].IsLoggedIn)
             {
                 if (Tools.GetPlayerByName(TShock.Players[args.Who].UserAccountName) == null)
@@ -152,6 +159,9 @@ namespace TimeBasedRanks
         /// <param name="e"></param>
         private void PostLogin(TShockAPI.Hooks.PlayerPostLoginEventArgs e)
         {
+            if (e.Player == null)
+                return;
+
             if (config.AutoStartUsers && e.Player.Group.Name == config.StartGroup)
                 TShock.Users.SetUserGroup(
                     TShock.Users.GetUserByName(e.Player.UserAccountName),
@@ -172,8 +182,7 @@ namespace TimeBasedRanks
                     var player = Tools.GetPlayerByName("~^" + e.Player.Name);
 
                     player.name = e.Player.UserAccountName;
-                    if (player.index != e.Player.Index)
-                        player.index = e.Player.Index;
+                    player.index = e.Player.Index;
 
                     player.online = true;
 
