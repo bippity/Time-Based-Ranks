@@ -9,6 +9,7 @@ using TerrariaApi.Server;
 
 using Mono.Data.Sqlite;
 using MySql.Data.MySqlClient;
+using TShockAPI.Hooks;
 
 
 namespace TimeBasedRanks
@@ -109,7 +110,7 @@ namespace TimeBasedRanks
             if (!TShock.Config.DisableUUIDLogin)
             {
                 if (TShock.Players[args.Who].IsLoggedIn)
-                    PostLogin(new TShockAPI.Hooks.PlayerPostLoginEventArgs(TShock.Players[args.Who]));
+                    PostLogin(new PlayerPostLoginEventArgs(TShock.Players[args.Who]));
                 else
                 {
                     var player = new TrPlayer("~^" + TShock.Players[args.Who].Name, 0,
@@ -162,7 +163,8 @@ namespace TimeBasedRanks
             if (e.Player == null)
                 return;
 
-            if (config.AutoStartUsers && e.Player.Group.Name == config.StartGroup)
+            if (config.AutoStartUsers && e.Player.Group.Name == config.StartGroup &&
+                config.Groups.Keys.Count > 0)
                 TShock.Users.SetUserGroup(
                     TShock.Users.GetUserByName(e.Player.UserAccountName),
                     config.Groups.Keys.ToList()[0]);
@@ -193,7 +195,7 @@ namespace TimeBasedRanks
                 }
                 else
                 {
-                    var player = new TrPlayer(e.Player.UserAccountName, 0, DateTime.UtcNow.ToString("G"), 
+                    var player = new TrPlayer(e.Player.UserAccountName, 0, DateTime.UtcNow.ToString("G"),
                         DateTime.UtcNow.ToString("G"), 0) {index = e.Player.Index, online = true};
 
                     Tools.Players.Add(player);
