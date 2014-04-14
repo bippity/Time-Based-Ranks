@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Data;
 using System.Linq;
@@ -107,13 +108,15 @@ namespace TimeBasedRanks
             if (TShock.Players[args.Who] == null)
                 return;
 
+            var ply = TShock.Players[args.Who];
+
             if (!TShock.Config.DisableUUIDLogin)
             {
-                if (TShock.Players[args.Who].IsLoggedIn)
-                    PostLogin(new PlayerPostLoginEventArgs(TShock.Players[args.Who]));
+                if (ply.IsLoggedIn)
+                    PostLogin(new PlayerPostLoginEventArgs(ply));
                 else
                 {
-                    var player = new TrPlayer("~^" + TShock.Players[args.Who].Name, 0,
+                    var player = new TrPlayer("~^" + ply.Name, 0,
                         DateTime.UtcNow.ToString("G"), DateTime.UtcNow.ToString("G"), 0)
                         {index = args.Who, online = true};
 
@@ -122,7 +125,7 @@ namespace TimeBasedRanks
             }
             else
             {
-                var player = new TrPlayer("~^" + TShock.Players[args.Who].Name, 0,
+                var player = new TrPlayer("~^" + ply.Name, 0,
                     DateTime.UtcNow.ToString("G"), DateTime.UtcNow.ToString("G"), 0) 
                     {index = args.Who, online = true};
 
@@ -135,30 +138,34 @@ namespace TimeBasedRanks
             if (TShock.Players[args.Who] == null)
                 return;
 
-            if (TShock.Players[args.Who].IsLoggedIn)
+            var ply = TShock.Players[args.Who];
+
+            if (ply.IsLoggedIn)
             {
-                if (Tools.GetPlayerByName(TShock.Players[args.Who].UserAccountName) == null)
+                if (Tools.GetPlayerByName(ply.UserAccountName) == null)
                     return;
 
-                var player = Tools.GetPlayerByName(TShock.Players[args.Who].UserAccountName);
-                player.online = false;
+                var player = Tools.GetPlayerByName(ply.UserAccountName);
                 dbManager.savePlayer(player);
+                player.online = false;
                 player.index = -1;
             }
             else
-                if (Tools.GetPlayerByName("~^" + TShock.Players[args.Who].Name) != null)
-                {
-                    var player = Tools.GetPlayerByName("~^" + TShock.Players[args.Who].Name);
-                    player.index = -1;
-                    player.online = false;
-                }
+            {
+                if (Tools.GetPlayerByName("~^" + ply.Name) == null)
+                    return;
+
+                var player = Tools.GetPlayerByName("~^" + ply.Name);
+                player.online = false;
+                player.index = -1;
+            }
         }
 
         /// <summary>
         /// Handles login events. Syncs the player's stored stats if they have them
         /// </summary>
         /// <param name="e"></param>
-        private void PostLogin(TShockAPI.Hooks.PlayerPostLoginEventArgs e)
+        private void PostLogin(PlayerPostLoginEventArgs e)
         {
             if (e.Player == null)
                 return;
@@ -252,10 +259,8 @@ namespace TimeBasedRanks
                 var player = Tools.GetPlayerListByName(str);
 
                 if (player.Count > 1)
-                {
                     TShock.Utils.SendMultipleMatchError(args.Player, player.Select(p => p.name));
-                    Console.WriteLine(player.Count);
-                }
+
                 else
                     switch (player.Count)
                     {
