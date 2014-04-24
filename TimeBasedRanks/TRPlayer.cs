@@ -13,9 +13,21 @@ namespace TimeBasedRanks
         public string name;
         public string firstLogin;
         public string lastLogin;
-        public string group { get { return TShock.Players[index].Group.Name; } }
 
-        public rankInfo rankInfo { get { return getRankInfo; } }
+        public string group
+        {
+            get
+            {
+                return !online
+                    ? TShock.Users.GetUserByName(name).Group
+                    : TShock.Players[index].Group.Name;
+            }
+        }
+
+        public rankInfo rankInfo
+        {
+            get { return getRankInfo; }
+        }
 
         public int time;
         public int points;
@@ -40,7 +52,7 @@ namespace TimeBasedRanks
 
                 var ts = DateTime.UtcNow - reg;
 
-                var months = ts.Days / 30;
+                var months = ts.Days/30;
 
                 if (months > 0)
                     sb.Append(string.Format("{0} month{1}~", months, appendString(months)));
@@ -66,7 +78,7 @@ namespace TimeBasedRanks
 
                 var ts = new TimeSpan(0, 0, 0, time);
 
-                var months = ts.Days / 30;
+                var months = ts.Days/30;
 
                 if (months > 0)
                     sb.Append(string.Format("{0} month{1}~", months, appendString(months)));
@@ -84,7 +96,7 @@ namespace TimeBasedRanks
             }
         }
 
-        public string getLastOnline
+        public object[] getLastOnline
         {
             get
             {
@@ -94,7 +106,7 @@ namespace TimeBasedRanks
 
                 var ts = DateTime.UtcNow - last;
 
-                var months = ts.Days / 30;
+                var months = ts.Days/30;
 
                 if (months > 0)
                     sb.Append(string.Format("{0} month{1}~", months, appendString(months)));
@@ -107,7 +119,7 @@ namespace TimeBasedRanks
                 if (ts.Seconds > 0)
                     sb.Append(string.Format("{0} second{1}", ts.Seconds, appendString(ts.Seconds)));
 
-                return string.Join(", ", sb.ToString().Split('~'));
+                return new object[] {ts, string.Join(", ", sb.ToString().Split('~'))};
             }
         }
 
@@ -115,7 +127,7 @@ namespace TimeBasedRanks
         {
             get
             {
-                if (!configContainsGroup)
+                if (!ConfigContainsGroup)
                     return "group is not a part of the ranking system";
 
                 if (getNextGroupName == "max rank achieved")
@@ -148,11 +160,11 @@ namespace TimeBasedRanks
         {
             get
             {
-                if (!configContainsGroup)
+                if (!ConfigContainsGroup)
                     return "0 / 0";
 
                 return (TBR.config.Groups.Keys.ToList().IndexOf(group) + 1)
-                    + " / " + TBR.config.Groups.Keys.Count;
+                       + " / " + TBR.config.Groups.Keys.Count;
             }
         }
 
@@ -165,20 +177,22 @@ namespace TimeBasedRanks
             {
                 if (rankInfo.nextGroup == group)
                     return "max rank achieved";
-                return !configContainsGroup 
-                    ? "group is not part of the ranking system" 
+                return !ConfigContainsGroup
+                    ? "group is not part of the ranking system"
                     : getRankInfo.nextGroup;
             }
         }
+
         public rankInfo getNextRankInfo
         {
             get
             {
-                return configContainsGroup
+                return ConfigContainsGroup
                     ? (rankInfo.nextGroup == group
-                        ? new rankInfo("max rank", 0)
+                        ? new rankInfo("max rank", 0,
+                            TBR.config.Groups.Values.ToList()[TBR.config.Groups.Values.ToList().Count - 1].derankCost)
                         : TBR.config.Groups.First(g => g.Key == rankInfo.nextGroup).Value)
-                    : new rankInfo("none", 0);
+                    : new rankInfo("none", 0, 0);
             }
         }
 
@@ -186,11 +200,11 @@ namespace TimeBasedRanks
         {
             get
             {
-                return configContainsGroup
+                return ConfigContainsGroup
                     ? (group == TBR.config.StartGroup
-                        ? new rankInfo(TBR.config.Groups.Keys.ToList()[0], 0)
+                        ? new rankInfo(TBR.config.Groups.Keys.ToList()[0], 0, 0)
                         : TBR.config.Groups.First(g => g.Key == group).Value)
-                    : new rankInfo("none", 0);
+                    : new rankInfo("none", 0, 0);
             }
         }
 
@@ -207,12 +221,9 @@ namespace TimeBasedRanks
         /// <summary>
         /// Returns a boolean value indicating whether the config file contains the player's group
         /// </summary>
-        private bool configContainsGroup
+        private bool ConfigContainsGroup
         {
-            get
-            {
-                return TBR.config.Groups.Keys.Contains(group);
-            }
+            get { return TBR.config.Groups.Keys.Contains(group); }
         }
     }
 }

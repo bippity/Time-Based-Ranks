@@ -9,11 +9,13 @@ namespace TimeBasedRanks
     {
         public readonly int rankCost;
         public readonly string nextGroup;
+        public readonly int derankCost;
 
-        public rankInfo(string nextGroup, int rankCost)
+        public rankInfo(string nextGroup, int rankCost, int derankCost)
         {
             this.nextGroup = nextGroup;
             this.rankCost = rankCost;
+            this.derankCost = derankCost;
         }
     }
 
@@ -22,6 +24,7 @@ namespace TimeBasedRanks
         public int IncrementTimeInterval = 1;
         public float PointDivisor = 1;
         public int CheckAfkStatusInterval = 1;
+        public int CheckOldAccountsInterval = 3600;
         public int SavePlayerStatsInterval = 600;
         public bool CreateNonExistantGroups = false;
         public string StartGroup = "default";

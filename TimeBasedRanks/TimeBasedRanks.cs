@@ -55,10 +55,6 @@ namespace TimeBasedRanks
         public override void Initialize()
         {
             Tools = new Tools();
-            _timers = new TbrTimers();
-
-            _timers.Start();
-
 
             switch (TShock.Config.StorageType.ToLower())
             {
@@ -217,11 +213,12 @@ namespace TimeBasedRanks
 
         private void OnInitialize(EventArgs e)
         {
-
-
             var configPath = Path.Combine(TShock.SavePath, "TimeRanks.json");
             (config = TRConfig.Read(configPath)).Write(configPath);
 
+            _timers = new TbrTimers();
+
+            _timers.Start();
 
             if (config.Groups.Keys.Count > 0)
                 if (String.Equals(config.StartGroup, config.Groups.Keys.ToList()[0],
@@ -286,6 +283,7 @@ namespace TimeBasedRanks
                                 "{0}'s total registered time: " + player[0].getTotalRegisteredTime, player[0].name);
                             args.Player.SendSuccessMessage("{0}'s total time played: " + player[0].getTimePlayed,
                                 player[0].name);
+
                             if (player[0].online)
                             {
                                 args.Player.SendSuccessMessage("{0}'s current rank position: " +
@@ -298,7 +296,8 @@ namespace TimeBasedRanks
                             }
                             else
                                 args.Player.SendSuccessMessage("{0} was last online: " + player[0].lastLogin +
-                                                               " (" + player[0].getLastOnline + " ago)", player[0].name);
+                                                               " (" + player[0].getLastOnline[1] + " ago)",
+                                                               player[0].name);
                             break;
                     }
             }
