@@ -96,7 +96,7 @@ namespace TimeBasedRanks
             ServerApi.Hooks.GameInitialize.Register(this, OnInitialize);
             ServerApi.Hooks.NetGreetPlayer.Register(this, OnGreet);
             ServerApi.Hooks.ServerLeave.Register(this, OnLeave);
-            TShockAPI.Hooks.PlayerHooks.PlayerPostLogin += PostLogin;
+            PlayerHooks.PlayerPostLogin += PostLogin;
         }
 
         /// <summary>
@@ -217,23 +217,35 @@ namespace TimeBasedRanks
 
         private void OnInitialize(EventArgs e)
         {
-            Commands.ChatCommands.Add(new Command("tbr.rank.check", Check, "check", "checktime", "ct")
-                {
-                    HelpText = "Displays text about your current and upcoming ranks, as well as time infomration"
-                });
-
-            Commands.ChatCommands.Add(new Command("tbr.start", StartRank, "start", "startrank", "sr")
-                {
-                    HelpText = "Switches a user into the starting group for the rank system"
-                });
 
 
             var configPath = Path.Combine(TShock.SavePath, "TimeRanks.json");
             (config = TRConfig.Read(configPath)).Write(configPath);
 
+
+            if (config.Groups.Keys.Count > 0)
+                if (String.Equals(config.StartGroup, config.Groups.Keys.ToList()[0],
+                    StringComparison.CurrentCultureIgnoreCase))
+                {
+                    Log.ConsoleError("[Time Based Ranks] Initialization cancelled due to configuration error: " + 
+                        "StartGroup is the same as first rank name");
+
+                    ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
+                    return;
+                }
+
             if (config.CreateNonExistantGroups)
                 Tools.CreateGroups();
 
+            Commands.ChatCommands.Add(new Command("tbr.rank.check", Check, "check", "checktime", "ct")
+            {
+                HelpText = "Displays text about your current and upcoming ranks, as well as time infomration"
+            });
+
+            Commands.ChatCommands.Add(new Command("tbr.start", StartRank, "start", "startrank", "sr")
+            {
+                HelpText = "Switches a user into the starting group for the rank system"
+            });
 
             dbManager.Initialize();
         }

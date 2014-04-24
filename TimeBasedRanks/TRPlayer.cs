@@ -165,8 +165,9 @@ namespace TimeBasedRanks
             {
                 if (rankInfo.nextGroup == group)
                     return "max rank achieved";
-                return !configContainsGroup ? "group is not part of the ranking system" :
-                    getRankInfo.nextGroup;
+                return !configContainsGroup 
+                    ? "group is not part of the ranking system" 
+                    : getRankInfo.nextGroup;
             }
         }
         public rankInfo getNextRankInfo
