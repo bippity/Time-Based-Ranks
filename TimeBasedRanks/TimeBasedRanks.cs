@@ -166,11 +166,6 @@ namespace TimeBasedRanks
             if (e.Player == null)
                 return;
 
-            if (config.AutoStartUsers && e.Player.Group.Name == config.StartGroup &&
-                config.Groups.Keys.Count > 0)
-                TShock.Users.SetUserGroup(
-                    TShock.Users.GetUserByName(e.Player.UserAccountName),
-                    config.Groups.Keys.ToList()[0]);
 
             if (Tools.GetPlayerByName(e.Player.UserAccountName) != null)
             {
@@ -208,6 +203,22 @@ namespace TimeBasedRanks
                     else
                         Log.ConsoleInfo("[TimeRanks] Created storage for {0}.", player.name);
                 }
+            }
+
+            if (!config.AutoStartUsers || e.Player.Group.Name != config.StartGroup || config.Groups.Keys.Count <= 0)
+                return;
+
+            TShock.Users.SetUserGroup(
+                TShock.Users.GetUserByName(e.Player.UserAccountName),
+                config.Groups.Keys.ToList()[0]);
+
+            foreach (var cmd in Tools.GetPlayerByName(e.Player.UserAccountName).rankInfo.commands)
+            {
+                var command = cmd.StartsWith("/") ? cmd : "/" + cmd;
+                Commands.HandleCommand(config.UseConfigToExecuteRankUpCommands
+                    ? TSServerPlayer.Server
+                    : e.Player,
+                    command);
             }
         }
 
@@ -256,6 +267,15 @@ namespace TimeBasedRanks
                 TShock.Users.SetUserGroup(
                     TShock.Users.GetUserByName(args.Player.UserAccountName),
                     config.Groups.Keys.ToList()[0]);
+                foreach (var cmd in Tools.GetPlayerByName(args.Player.UserAccountName).rankInfo.commands)
+                {
+                    var command = cmd.StartsWith("/") ? cmd : "/" + cmd;
+                    Commands.HandleCommand(config.UseConfigToExecuteRankUpCommands
+                        ? TSServerPlayer.Server
+                        : args.Player,
+                        command);
+                }
+
                 args.Player.SendSuccessMessage("Success! You will now gain ranks over time");
             }
         }

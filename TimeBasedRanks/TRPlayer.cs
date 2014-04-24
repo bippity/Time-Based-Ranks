@@ -190,9 +190,10 @@ namespace TimeBasedRanks
                 return ConfigContainsGroup
                     ? (rankInfo.nextGroup == group
                         ? new rankInfo("max rank", 0,
-                            TBR.config.Groups.Values.ToList()[TBR.config.Groups.Values.ToList().Count - 1].derankCost)
+                            TBR.config.Groups.Values.ToList()[TBR.config.Groups.Values.ToList().Count - 1].derankCost,
+                            TBR.config.Groups.Values.ToList()[TBR.config.Groups.Values.ToList().Count - 1].commands)
                         : TBR.config.Groups.First(g => g.Key == rankInfo.nextGroup).Value)
-                    : new rankInfo("none", 0, 0);
+                    : new rankInfo("none", 0, 0, null);
             }
         }
 
@@ -202,9 +203,10 @@ namespace TimeBasedRanks
             {
                 return ConfigContainsGroup
                     ? (group == TBR.config.StartGroup
-                        ? new rankInfo(TBR.config.Groups.Keys.ToList()[0], 0, 0)
+                        ? new rankInfo(TBR.config.Groups.Keys.ToList()[0], 0, 0, 
+                            TBR.config.Groups.Values.ToList()[0].commands)
                         : TBR.config.Groups.First(g => g.Key == group).Value)
-                    : new rankInfo("none", 0, 0);
+                    : new rankInfo("none", 0, 0, null);
             }
         }
 

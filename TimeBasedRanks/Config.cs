@@ -10,12 +10,14 @@ namespace TimeBasedRanks
         public readonly int rankCost;
         public readonly string nextGroup;
         public readonly int derankCost;
+        public readonly string[] commands;
 
-        public rankInfo(string nextGroup, int rankCost, int derankCost)
+        public rankInfo(string nextGroup, int rankCost, int derankCost, string[] commands)
         {
             this.nextGroup = nextGroup;
             this.rankCost = rankCost;
             this.derankCost = derankCost;
+            this.commands = commands;
         }
     }
 
@@ -29,7 +31,14 @@ namespace TimeBasedRanks
         public bool CreateNonExistantGroups = false;
         public string StartGroup = "default";
         public bool AutoStartUsers = true;
-        public readonly Dictionary<string, rankInfo> Groups = new Dictionary<string, rankInfo>();
+        public bool UseConfigToExecuteRankUpCommands = false;
+
+        public readonly Dictionary<string, rankInfo> Groups = new Dictionary<string, rankInfo>
+        {
+            {"newbie", new rankInfo("worker", 100, 100, new[] {"help", "check"})},
+            {"worker", new rankInfo("vip", 200, 100, new[] {"help", "check"})},
+            {"vip", new rankInfo("vip", 300, 100, new[] {"help", "check"})}
+        };
 
 
         public void Write(string path)

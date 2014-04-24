@@ -61,9 +61,18 @@ namespace TimeBasedRanks
                     continue;
 
                 player.points = 0;
-
+                
                 TShock.Users.SetUserGroup(
                     TShock.Users.GetUserByName(player.name), player.getNextGroupName);
+
+                foreach (var cmd in player.rankInfo.commands)
+                {
+                    var command = cmd.StartsWith("/") ? cmd : "/" + cmd;
+                    Commands.HandleCommand(TBR.config.UseConfigToExecuteRankUpCommands
+                        ? TSServerPlayer.Server
+                        : TShock.Players[player.index],
+                        command);
+                }
 
                 TShock.Players[player.index].SendWarningMessage("You have ranked up!");
                 TShock.Players[player.index].SendWarningMessage("Your current rank position: "
