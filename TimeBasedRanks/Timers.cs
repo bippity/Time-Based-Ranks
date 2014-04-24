@@ -91,6 +91,10 @@ namespace TimeBasedRanks
         {
             foreach (var player in TBR.Tools.Players.Where(player => !player.online))
             {
+                var group = TShock.Groups.GetGroupByName(player.group);
+                if (group.HasPermission("tbr.ignorederank"))
+                    continue;
+
                 var ts = (TimeSpan) player.getLastOnline[0];
 
                 if (ts.TotalSeconds < player.getRankInfo.derankCost)
