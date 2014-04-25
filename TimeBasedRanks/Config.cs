@@ -33,12 +33,13 @@ namespace TimeBasedRanks
         public bool AutoStartUsers = true;
         public bool UseConfigToExecuteRankUpCommands = false;
 
-        public readonly Dictionary<string, rankInfo> Groups = new Dictionary<string, rankInfo>
-        {
-            {"newbie", new rankInfo("worker", 100, 100, new[] {"help", "check"})},
-            {"worker", new rankInfo("vip", 200, 100, new[] {"help", "check"})},
-            {"vip", new rankInfo("vip", 300, 100, new[] {"help", "check"})}
-        };
+        public readonly Dictionary<string, rankInfo> Groups = new Dictionary<string, rankInfo>();
+        //    = new Dictionary<string, rankInfo>
+        //{
+        //    {"newbie", new rankInfo("worker", 100, 100, new[] {"help", "check"})},
+        //    {"worker", new rankInfo("vip", 200, 100, new[] {"help", "check"})},
+        //    {"vip", new rankInfo("vip", 300, 100, new[] {"help", "check"})}
+        //};
 
 
         public void Write(string path)
