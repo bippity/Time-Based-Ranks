@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Data;
 using System.Linq;
@@ -15,11 +14,11 @@ using TShockAPI.Hooks;
 
 namespace TimeBasedRanks
 {
-    [ApiVersion(1,15)]
-    public class TBR : TerrariaPlugin
+    [ApiVersion(1,16)]
+    public class Tbr : TerrariaPlugin
     {
-        private IDbConnection DB;
-        public static Tools Tools;
+        private IDbConnection _db;
+        public static Tools tools;
         public static Database dbManager;
         public static TRConfig config = new TRConfig();
         private static TbrTimers _timers;
@@ -30,7 +29,7 @@ namespace TimeBasedRanks
         public override Version Version { get { return new Version(0, 1); } }
 
 
-        public TBR(Main game)
+        public Tbr(Main game)
             : base(game) { }
 
         protected override void Dispose(bool disposing)
@@ -43,7 +42,7 @@ namespace TimeBasedRanks
 
                 var t = new Thread(delegate()
                 {
-                    dbManager.saveAllPlayers();
+                    dbManager.SaveAllPlayers();
                     Log.ConsoleInfo("Saved players successfully");
                 });
                 t.Start();
@@ -54,19 +53,19 @@ namespace TimeBasedRanks
 
         public override void Initialize()
         {
-            Tools = new Tools();
+            tools = new Tools();
 
             switch (TShock.Config.StorageType.ToLower())
             {
                 case "sqlite":
-                    DB = new SqliteConnection(string.Format("uri=file://{0},Version=3",
+                    _db = new SqliteConnection(string.Format("uri=file://{0},Version=3",
                         Path.Combine(TShock.SavePath, "TBRData.sqlite")));
                     break;
                 case "mysql":
                     try
                     {
                         var host = TShock.Config.MySqlHost.Split(':');
-                        DB = new MySqlConnection
+                        _db = new MySqlConnection
                         {
                             ConnectionString = String.Format("Server={0}; Port={1}; Database={2}; Uid={3}; Pwd={4}",
                                 host[0],
@@ -87,7 +86,7 @@ namespace TimeBasedRanks
                     throw new Exception("Invalid storage type.");
             }
 
-            dbManager = new Database(DB);
+            dbManager = new Database(_db);
 
             ServerApi.Hooks.GameInitialize.Register(this, OnInitialize);
             ServerApi.Hooks.NetGreetPlayer.Register(this, OnGreet);
@@ -99,7 +98,7 @@ namespace TimeBasedRanks
         /// Handles greet events. 
         /// </summary>
         /// <param name="args"></param>
-        private void OnGreet(GreetPlayerEventArgs args)
+        private static void OnGreet(GreetPlayerEventArgs args)
         {
             if (TShock.Players[args.Who] == null)
                 return;
@@ -116,7 +115,7 @@ namespace TimeBasedRanks
                         DateTime.UtcNow.ToString("G"), DateTime.UtcNow.ToString("G"), 0)
                         {index = args.Who, online = true};
 
-                    Tools.Players.Add(player);
+                    tools.players.Add(player);
                 }
             }
             else
@@ -125,7 +124,7 @@ namespace TimeBasedRanks
                     DateTime.UtcNow.ToString("G"), DateTime.UtcNow.ToString("G"), 0) 
                     {index = args.Who, online = true};
 
-                Tools.Players.Add(player);
+                tools.players.Add(player);
             }
         }
 
@@ -138,20 +137,20 @@ namespace TimeBasedRanks
 
             if (ply.IsLoggedIn)
             {
-                if (Tools.GetPlayerByName(ply.UserAccountName) == null)
+                if (tools.GetPlayerByName(ply.UserAccountName) == null)
                     return;
 
-                var player = Tools.GetPlayerByName(ply.UserAccountName);
-                dbManager.savePlayer(player);
+                var player = tools.GetPlayerByName(ply.UserAccountName);
+                dbManager.SavePlayer(player);
                 player.online = false;
                 player.index = -1;
             }
             else
             {
-                if (Tools.GetPlayerByName("~^" + ply.Name) == null)
+                if (tools.GetPlayerByName("~^" + ply.Name) == null)
                     return;
 
-                var player = Tools.GetPlayerByName("~^" + ply.Name);
+                var player = tools.GetPlayerByName("~^" + ply.Name);
                 player.online = false;
                 player.index = -1;
             }
@@ -161,15 +160,15 @@ namespace TimeBasedRanks
         /// Handles login events. Syncs the player's stored stats if they have them
         /// </summary>
         /// <param name="e"></param>
-        private void PostLogin(PlayerPostLoginEventArgs e)
+        private static void PostLogin(PlayerPostLoginEventArgs e)
         {
             if (e.Player == null)
                 return;
 
 
-            if (Tools.GetPlayerByName(e.Player.UserAccountName) != null)
+            if (tools.GetPlayerByName(e.Player.UserAccountName) != null)
             {
-                var player = Tools.GetPlayerByName(e.Player.UserAccountName);
+                var player = tools.GetPlayerByName(e.Player.UserAccountName);
 
                 player.index = e.Player.Index;
                 player.online = true;
@@ -177,16 +176,16 @@ namespace TimeBasedRanks
 
             else
             {
-                if (Tools.GetPlayerByName("~^" + e.Player.Name) != null)
+                if (tools.GetPlayerByName("~^" + e.Player.Name) != null)
                 {
-                    var player = Tools.GetPlayerByName("~^" + e.Player.Name);
+                    var player = tools.GetPlayerByName("~^" + e.Player.Name);
 
                     player.name = e.Player.UserAccountName;
                     player.index = e.Player.Index;
 
                     player.online = true;
 
-                    if (!dbManager.insertPlayer(player))
+                    if (!dbManager.InsertPlayer(player))
                         Log.ConsoleError("[TimeRanks] Failed to create storage for {0}.", player.name);
                     else
                         Log.ConsoleInfo("[TimeRanks] Created storage for {0}.", player.name);
@@ -196,9 +195,9 @@ namespace TimeBasedRanks
                     var player = new TrPlayer(e.Player.UserAccountName, 0, DateTime.UtcNow.ToString("G"),
                         DateTime.UtcNow.ToString("G"), 0) {index = e.Player.Index, online = true};
 
-                    Tools.Players.Add(player);
+                    tools.players.Add(player);
 
-                    if (!dbManager.insertPlayer(player))
+                    if (!dbManager.InsertPlayer(player))
                         Log.ConsoleError("[TimeRanks] Failed to create storage for {0}.", player.name);
                     else
                         Log.ConsoleInfo("[TimeRanks] Created storage for {0}.", player.name);
@@ -212,11 +211,11 @@ namespace TimeBasedRanks
                 TShock.Users.GetUserByName(e.Player.UserAccountName),
                 config.Groups.Keys.ToList()[0]);
 
-            foreach (var cmd in Tools.GetPlayerByName(e.Player.UserAccountName).rankInfo.commands)
+            foreach (var cmd in tools.GetPlayerByName(e.Player.UserAccountName).RankInfo.commands)
             {
                 var command = cmd.StartsWith("/") ? cmd : "/" + cmd;
                 Commands.HandleCommand(config.UseConfigToExecuteRankUpCommands
-                    ? TSServerPlayer.Server
+                    ? TSPlayer.Server
                     : e.Player,
                     command);
             }
@@ -255,7 +254,7 @@ namespace TimeBasedRanks
                 HelpText = "Switches a user into the starting group for the rank system"
             });
 
-            dbManager.Initialize();
+            dbManager.InitialSyncPlayers();
         }
 
         private static void StartRank(CommandArgs args)
@@ -267,11 +266,11 @@ namespace TimeBasedRanks
                 TShock.Users.SetUserGroup(
                     TShock.Users.GetUserByName(args.Player.UserAccountName),
                     config.Groups.Keys.ToList()[0]);
-                foreach (var cmd in Tools.GetPlayerByName(args.Player.UserAccountName).rankInfo.commands)
+                foreach (var cmd in tools.GetPlayerByName(args.Player.UserAccountName).RankInfo.commands)
                 {
                     var command = cmd.StartsWith("/") ? cmd : "/" + cmd;
                     Commands.HandleCommand(config.UseConfigToExecuteRankUpCommands
-                        ? TSServerPlayer.Server
+                        ? TSPlayer.Server
                         : args.Player,
                         command);
                 }
@@ -285,7 +284,7 @@ namespace TimeBasedRanks
             if (args.Parameters.Count > 0)
             {
                 var str = string.Join(" ", args.Parameters);
-                var player = Tools.GetPlayerListByName(str);
+                var player = tools.GetPlayerListByName(str);
 
                 if (player.Count > 1)
                     TShock.Utils.SendMultipleMatchError(args.Player, player.Select(p => p.name));
@@ -300,42 +299,42 @@ namespace TimeBasedRanks
                             args.Player.SendSuccessMessage("{0}'s registration date: " + player[0].firstLogin,
                                 player[0].name);
                             args.Player.SendSuccessMessage(
-                                "{0}'s total registered time: " + player[0].getTotalRegisteredTime, player[0].name);
-                            args.Player.SendSuccessMessage("{0}'s total time played: " + player[0].getTimePlayed,
+                                "{0}'s total registered time: " + player[0].GetTotalRegisteredTime, player[0].name);
+                            args.Player.SendSuccessMessage("{0}'s total time played: " + player[0].GetTimePlayed,
                                 player[0].name);
 
                             if (player[0].online)
                             {
                                 args.Player.SendSuccessMessage("{0}'s current rank position: " +
-                                                               player[0].getGroupPosition + " (" + player[0].group + ")",
+                                                               player[0].GetGroupPosition + " (" + player[0].Group + ")",
                                     player[0].name);
-                                args.Player.SendSuccessMessage("{0}'s next rank: " + player[0].getNextGroupName,
+                                args.Player.SendSuccessMessage("{0}'s next rank: " + player[0].GetNextGroupName,
                                     player[0].name);
-                                args.Player.SendSuccessMessage("{0}'s next rank in: " + player[0].getNextRankTime,
+                                args.Player.SendSuccessMessage("{0}'s next rank in: " + player[0].GetNextRankTime,
                                     player[0].name);
                             }
                             else
                                 args.Player.SendSuccessMessage("{0} was last online: " + player[0].lastLogin +
-                                                               " (" + player[0].getLastOnline[1] + " ago)",
+                                                               " (" + player[0].GetLastOnline[1] + " ago)",
                                                                player[0].name);
                             break;
                     }
             }
             else
             {
-                if (args.Player == TSServerPlayer.Server)
+                if (args.Player == TSPlayer.Server)
                 {
                     args.Player.SendErrorMessage("Sorry, the server doesn't have stats to check (yet?)!");
                     return;
                 }
-                var player = Tools.GetPlayerByName(args.Player.UserAccountName);
+                var player = tools.GetPlayerByName(args.Player.UserAccountName);
                 args.Player.SendSuccessMessage("Your registration date: " + player.firstLogin);
-                args.Player.SendSuccessMessage("Your total registered time: " + player.getTotalRegisteredTime);
-                args.Player.SendSuccessMessage("Your total time played: " + player.getTimePlayed);
+                args.Player.SendSuccessMessage("Your total registered time: " + player.GetTotalRegisteredTime);
+                args.Player.SendSuccessMessage("Your total time played: " + player.GetTimePlayed);
                 args.Player.SendSuccessMessage("Your current rank position: " 
-                    + player.getGroupPosition + " (" + player.group + ")");
-                args.Player.SendSuccessMessage("Your next rank: " + player.getNextGroupName);
-                args.Player.SendSuccessMessage("Next rank in: " + player.getNextRankTime);
+                    + player.GetGroupPosition + " (" + player.Group + ")");
+                args.Player.SendSuccessMessage("Your next rank: " + player.GetNextGroupName);
+                args.Player.SendSuccessMessage("Next rank in: " + player.GetNextRankTime);
             }
         }
     }

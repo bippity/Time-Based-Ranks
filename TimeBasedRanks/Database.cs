@@ -16,7 +16,7 @@ namespace TimeBasedRanks
         {
             _db = db;
 
-            var SQLCreator = new SqlTableCreator(db,
+            var sqlCreator = new SqlTableCreator(db,
                                              db.GetSqlType() == SqlType.Sqlite
                                              ? (IQueryBuilder)new SqliteQueryCreator()
                                              : new MysqlQueryCreator());
@@ -29,14 +29,14 @@ namespace TimeBasedRanks
                 new SqlColumn("LastLogin", MySqlDbType.Text),
                 new SqlColumn("Experience", MySqlDbType.Int32)
                 );
-            SQLCreator.EnsureExists(table);
+            sqlCreator.EnsureExists(table);
         }
 
         /// <summary>
         /// Inserts a player into the database. Is only called for players that do not exist already.
         /// </summary>
         /// <param name="player">Player to insert</param>
-        public bool insertPlayer(TrPlayer player)
+        public bool InsertPlayer(TrPlayer player)
         {
             return _db.Query("INSERT INTO TimeBasedRanking (Name, Time, FirstLogin, LastLogin, Experience)"
                 + " VALUES (@0, @1, @2, @3, @4)", player.name, player.time, player.firstLogin, 
@@ -48,7 +48,7 @@ namespace TimeBasedRanks
         /// </summary>
         /// <param name="player">player to remove</param>
         /// <returns></returns>
-        public bool deletePlayer(string player)
+        public bool DeletePlayer(string player)
         {
             return _db.Query("DELETE FROM TimeBasedRanking WHERE Name = @0", player) != 0;
         }
@@ -58,7 +58,7 @@ namespace TimeBasedRanks
         /// </summary>
         /// <param name="player"></param>
         /// <returns></returns>
-        public bool savePlayer(TrPlayer player)
+        public bool SavePlayer(TrPlayer player)
         {
             player.lastLogin = DateTime.UtcNow.ToString("G");
             return _db.Query("UPDATE TimeBasedRanking SET Time = @0, LastLogin = @1," + 
@@ -66,17 +66,17 @@ namespace TimeBasedRanks
                 player.time, player.lastLogin, player.points, player.name) != 0;
         }
 
-        public void saveAllPlayers()
+        public void SaveAllPlayers()
         {
-            foreach (var player in TBR.Tools.Players.Where(player => player.index != -1 && 
+            foreach (var player in Tbr.tools.players.Where(player => player.index != -1 && 
                 TShock.Players[player.index] != null && TShock.Players[player.index].IsLoggedIn))
-                savePlayer(player);
+                SavePlayer(player);
         }
 
         /// <summary>
         /// Syncs all player's stats into the server on initialization
         /// </summary>
-        private void initialSyncPlayers()
+        public void InitialSyncPlayers()
         {
             using (var reader = _db.QueryReader("SELECT * FROM TimeBasedRanking"))
             {
@@ -87,17 +87,9 @@ namespace TimeBasedRanks
                     var firstLogin = reader.Get<string>("FirstLogin");
                     var lastLogin = reader.Get<string>("LastLogin");
                     var points = reader.Get<int>("Experience");
-                    TBR.Tools.Players.Add(new TrPlayer(name, time, firstLogin, lastLogin, points));
+                    Tbr.tools.players.Add(new TrPlayer(name, time, firstLogin, lastLogin, points));
                 }
             }
-        }
-
-        /// <summary>
-        /// Creates the database table and columns if they don't exist. Calls initialiSyncPlayers()
-        /// </summary>
-        public void Initialize()
-        {
-            initialSyncPlayers();
         }
     }
 }

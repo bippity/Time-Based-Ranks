@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using TShockAPI;
@@ -11,10 +10,10 @@ namespace TimeBasedRanks
         public int index;
         public bool online;
         public string name;
-        public string firstLogin;
+        public readonly string firstLogin;
         public string lastLogin;
 
-        public string group
+        public string Group
         {
             get
             {
@@ -24,9 +23,9 @@ namespace TimeBasedRanks
             }
         }
 
-        public rankInfo rankInfo
+        public rankInfo RankInfo
         {
-            get { return getRankInfo; }
+            get { return GetRankInfo; }
         }
 
         public int time;
@@ -41,7 +40,7 @@ namespace TimeBasedRanks
             this.points = points;
         }
 
-        public string getTotalRegisteredTime
+        public string GetTotalRegisteredTime
         {
             get
             {
@@ -55,22 +54,22 @@ namespace TimeBasedRanks
                 var months = ts.Days/30;
 
                 if (months > 0)
-                    sb.Append(string.Format("{0} month{1}~", months, appendString(months)));
+                    sb.Append(string.Format("{0} month{1}~", months, AppendString(months)));
                 if (ts.Days > 0)
-                    sb.Append(string.Format("{0} day{1}~", ts.Days, appendString(ts.Days)));
+                    sb.Append(string.Format("{0} day{1}~", ts.Days, AppendString(ts.Days)));
                 if (ts.Hours > 0)
-                    sb.Append(string.Format("{0} hour{1}~", ts.Hours, appendString(ts.Hours)));
+                    sb.Append(string.Format("{0} hour{1}~", ts.Hours, AppendString(ts.Hours)));
                 if (ts.Minutes > 0)
-                    sb.Append(string.Format("{0} minute{1}~", ts.Minutes, appendString(ts.Minutes)));
+                    sb.Append(string.Format("{0} minute{1}~", ts.Minutes, AppendString(ts.Minutes)));
                 if (ts.Seconds > 0)
-                    sb.Append(string.Format("{0} second{1}", ts.Seconds, appendString(ts.Seconds)));
+                    sb.Append(string.Format("{0} second{1}", ts.Seconds, AppendString(ts.Seconds)));
 
 
                 return string.Join(", ", sb.ToString().Split('~'));
             }
         }
 
-        public string getTimePlayed
+        public string GetTimePlayed
         {
             get
             {
@@ -81,22 +80,22 @@ namespace TimeBasedRanks
                 var months = ts.Days/30;
 
                 if (months > 0)
-                    sb.Append(string.Format("{0} month{1}~", months, appendString(months)));
+                    sb.Append(string.Format("{0} month{1}~", months, AppendString(months)));
                 if (ts.Days > 0)
-                    sb.Append(string.Format("{0} day{1}~", ts.Days, appendString(ts.Days)));
+                    sb.Append(string.Format("{0} day{1}~", ts.Days, AppendString(ts.Days)));
                 if (ts.Hours > 0)
-                    sb.Append(string.Format("{0} hour{1}~", ts.Hours, appendString(ts.Hours)));
+                    sb.Append(string.Format("{0} hour{1}~", ts.Hours, AppendString(ts.Hours)));
                 if (ts.Minutes > 0)
-                    sb.Append(string.Format("{0} minute{1}~", ts.Minutes, appendString(ts.Minutes)));
+                    sb.Append(string.Format("{0} minute{1}~", ts.Minutes, AppendString(ts.Minutes)));
                 if (ts.Seconds > 0)
-                    sb.Append(string.Format("{0} second{1}", ts.Seconds, appendString(ts.Seconds)));
+                    sb.Append(string.Format("{0} second{1}", ts.Seconds, AppendString(ts.Seconds)));
 
 
                 return string.Join(", ", sb.ToString().Split('~'));
             }
         }
 
-        public object[] getLastOnline
+        public object[] GetLastOnline
         {
             get
             {
@@ -109,32 +108,32 @@ namespace TimeBasedRanks
                 var months = ts.Days/30;
 
                 if (months > 0)
-                    sb.Append(string.Format("{0} month{1}~", months, appendString(months)));
+                    sb.Append(string.Format("{0} month{1}~", months, AppendString(months)));
                 if (ts.Days > 0)
-                    sb.Append(string.Format("{0} day{1}~", ts.Days, appendString(ts.Days)));
+                    sb.Append(string.Format("{0} day{1}~", ts.Days, AppendString(ts.Days)));
                 if (ts.Hours > 0)
-                    sb.Append(string.Format("{0} hour{1}~", ts.Hours, appendString(ts.Hours)));
+                    sb.Append(string.Format("{0} hour{1}~", ts.Hours, AppendString(ts.Hours)));
                 if (ts.Minutes > 0)
-                    sb.Append(string.Format("{0} minute{1}~", ts.Minutes, appendString(ts.Minutes)));
+                    sb.Append(string.Format("{0} minute{1}~", ts.Minutes, AppendString(ts.Minutes)));
                 if (ts.Seconds > 0)
-                    sb.Append(string.Format("{0} second{1}", ts.Seconds, appendString(ts.Seconds)));
+                    sb.Append(string.Format("{0} second{1}", ts.Seconds, AppendString(ts.Seconds)));
 
                 return new object[] {ts, string.Join(", ", sb.ToString().Split('~'))};
             }
         }
 
-        public string getNextRankTime
+        public string GetNextRankTime
         {
             get
             {
                 if (!ConfigContainsGroup)
                     return "group is not a part of the ranking system";
 
-                if (getNextGroupName == "max rank achieved")
+                if (GetNextGroupName == "max rank achieved")
                     return "max rank achieved";
 
 
-                var reqPoints = getNextRankInfo.rankCost;
+                var reqPoints = GetNextRankInfo.rankCost;
                 var ts = new TimeSpan(0, 0, 0, reqPoints - points);
 
                 var sb = new StringBuilder();
@@ -142,70 +141,70 @@ namespace TimeBasedRanks
                 var months = ts.Days/30;
 
                 if (months > 0)
-                    sb.Append(string.Format("{0} month{1}~", months, appendString(months)));
+                    sb.Append(string.Format("{0} month{1}~", months, AppendString(months)));
                 if (ts.Days > 0)
-                    sb.Append(string.Format("{0} day{1}~", ts.Days, appendString(ts.Days)));
+                    sb.Append(string.Format("{0} day{1}~", ts.Days, AppendString(ts.Days)));
                 if (ts.Hours > 0)
-                    sb.Append(string.Format("{0} hour{1}~", ts.Hours, appendString(ts.Hours)));
+                    sb.Append(string.Format("{0} hour{1}~", ts.Hours, AppendString(ts.Hours)));
                 if (ts.Minutes > 0)
-                    sb.Append(string.Format("{0} minute{1}~", ts.Minutes, appendString(ts.Minutes)));
+                    sb.Append(string.Format("{0} minute{1}~", ts.Minutes, AppendString(ts.Minutes)));
                 if (ts.Seconds > 0)
-                    sb.Append(string.Format("{0} second{1}", ts.Seconds, appendString(ts.Seconds)));
+                    sb.Append(string.Format("{0} second{1}", ts.Seconds, AppendString(ts.Seconds)));
 
                 return string.Join(", ", sb.ToString().Split('~'));
             }
         }
 
-        public string getGroupPosition
+        public string GetGroupPosition
         {
             get
             {
                 if (!ConfigContainsGroup)
                     return "0 / 0";
 
-                return (TBR.config.Groups.Keys.ToList().IndexOf(group) + 1)
-                       + " / " + TBR.config.Groups.Keys.Count;
+                return (Tbr.config.Groups.Keys.ToList().IndexOf(Group) + 1)
+                       + " / " + Tbr.config.Groups.Keys.Count;
             }
         }
 
         /// <summary>
         /// Returns a string value of the next group the player will move into
         /// </summary>
-        public string getNextGroupName
+        public string GetNextGroupName
         {
             get
             {
-                if (rankInfo.nextGroup == group)
+                if (RankInfo.nextGroup == Group)
                     return "max rank achieved";
                 return !ConfigContainsGroup
                     ? "group is not part of the ranking system"
-                    : getRankInfo.nextGroup;
+                    : GetRankInfo.nextGroup;
             }
         }
 
-        public rankInfo getNextRankInfo
+        private rankInfo GetNextRankInfo
         {
             get
             {
                 return ConfigContainsGroup
-                    ? (rankInfo.nextGroup == group
+                    ? (RankInfo.nextGroup == Group
                         ? new rankInfo("max rank", 0,
-                            TBR.config.Groups.Values.ToList()[TBR.config.Groups.Values.ToList().Count - 1].derankCost,
-                            TBR.config.Groups.Values.ToList()[TBR.config.Groups.Values.ToList().Count - 1].commands)
-                        : TBR.config.Groups.First(g => g.Key == rankInfo.nextGroup).Value)
+                            Tbr.config.Groups.Values.ToList()[Tbr.config.Groups.Values.ToList().Count - 1].derankCost,
+                            Tbr.config.Groups.Values.ToList()[Tbr.config.Groups.Values.ToList().Count - 1].commands)
+                        : Tbr.config.Groups.First(g => g.Key == RankInfo.nextGroup).Value)
                     : new rankInfo("none", 0, 0, null);
             }
         }
 
-        public rankInfo getRankInfo
+        public rankInfo GetRankInfo
         {
             get
             {
                 return ConfigContainsGroup
-                    ? (group == TBR.config.StartGroup
-                        ? new rankInfo(TBR.config.Groups.Keys.ToList()[0], 0, 0, 
-                            TBR.config.Groups.Values.ToList()[0].commands)
-                        : TBR.config.Groups.First(g => g.Key == group).Value)
+                    ? (Group == Tbr.config.StartGroup
+                        ? new rankInfo(Tbr.config.Groups.Keys.ToList()[0], 0, 0, 
+                            Tbr.config.Groups.Values.ToList()[0].commands)
+                        : Tbr.config.Groups.First(g => g.Key == Group).Value)
                     : new rankInfo("none", 0, 0, null);
             }
         }
@@ -215,7 +214,7 @@ namespace TimeBasedRanks
         /// </summary>
         /// <param name="number"></param>
         /// <returns></returns>
-        private string appendString(int number)
+        private static string AppendString(int number)
         {
             return number > 1 || number == 0 ? "s" : "";
         }
@@ -225,7 +224,7 @@ namespace TimeBasedRanks
         /// </summary>
         private bool ConfigContainsGroup
         {
-            get { return TBR.config.Groups.Keys.Contains(group); }
+            get { return Tbr.config.Groups.Keys.Contains(Group); }
         }
     }
 }

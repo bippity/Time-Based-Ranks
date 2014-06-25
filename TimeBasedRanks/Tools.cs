@@ -6,7 +6,7 @@ namespace TimeBasedRanks
 {
     public class Tools
     {
-        public List<TrPlayer> Players = new List<TrPlayer>();
+        public readonly List<TrPlayer> players = new List<TrPlayer>();
 
         /// <summary>
         ///     Creates TShock groups from groups defined in the configuration file, if they do not exist
@@ -14,9 +14,9 @@ namespace TimeBasedRanks
         public static void CreateGroups()
         {
             var addedGroups = new List<string>();
-            if (TBR.config.Groups.Count > 0)
+            if (Tbr.config.Groups.Count > 0)
                 foreach (string group in
-                    TBR.config.Groups.Keys.Where(group => !TShock.Groups.GroupExists(group)))
+                    Tbr.config.Groups.Keys.Where(group => !TShock.Groups.GroupExists(group)))
                 {
                     TShock.Groups.AddGroup(group, string.Empty);
                     addedGroups.Add(group);
@@ -34,9 +34,8 @@ namespace TimeBasedRanks
         /// <returns>null or TRPlayer</returns>
         public TrPlayer GetPlayerByName(string name)
         {
-            return Players.FirstOrDefault(player => player.name == name) != null
-                ? Players.FirstOrDefault(player => player.name == name)
-                : null;
+            return players.FirstOrDefault(player => player.name == name) ??
+                   players.FirstOrDefault(player => player.name == name);
         }
 
         /// <summary>
@@ -49,7 +48,7 @@ namespace TimeBasedRanks
             name = name.ToLower();
             var retList = new List<TrPlayer>();
 
-            foreach (TrPlayer player in Players)
+            foreach (TrPlayer player in players)
             {
                 if (player.name.ToLower() == name)
                     return new List<TrPlayer> {player};
