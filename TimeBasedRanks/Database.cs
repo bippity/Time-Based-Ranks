@@ -2,8 +2,6 @@
 using System.Data;
 using System.Linq;
 using MySql.Data.MySqlClient;
-
-using TShockAPI;
 using TShockAPI.DB;
 
 namespace TimeBasedRanks
@@ -36,7 +34,7 @@ namespace TimeBasedRanks
         /// Inserts a player into the database. Is only called for players that do not exist already.
         /// </summary>
         /// <param name="player">Player to insert</param>
-        public bool InsertPlayer(TrPlayer player)
+        public bool InsertPlayer(TbrPlayer player)
         {
             return _db.Query("INSERT INTO TimeBasedRanking (Name, Time, FirstLogin, LastLogin, Experience)"
                 + " VALUES (@0, @1, @2, @3, @4)", player.name, player.time, player.firstLogin, 
@@ -58,7 +56,7 @@ namespace TimeBasedRanks
         /// </summary>
         /// <param name="player"></param>
         /// <returns></returns>
-        public bool SavePlayer(TrPlayer player)
+        public bool SavePlayer(TbrPlayer player)
         {
             player.lastLogin = DateTime.UtcNow.ToString("G");
             return _db.Query("UPDATE TimeBasedRanking SET Time = @0, LastLogin = @1," + 
@@ -68,8 +66,9 @@ namespace TimeBasedRanks
 
         public void SaveAllPlayers()
         {
-            foreach (var player in Tbr.tools.players.Where(player => player.index != -1 && 
-                TShock.Players[player.index] != null && TShock.Players[player.index].IsLoggedIn))
+            foreach (
+                var player in Tbr.Players.Players.Where(player => player.tsPlayer != null && player.tsPlayer.IsLoggedIn)
+                )
                 SavePlayer(player);
         }
 
@@ -87,7 +86,7 @@ namespace TimeBasedRanks
                     var firstLogin = reader.Get<string>("FirstLogin");
                     var lastLogin = reader.Get<string>("LastLogin");
                     var points = reader.Get<int>("Experience");
-                    Tbr.tools.players.Add(new TrPlayer(name, time, firstLogin, lastLogin, points));
+                    Tbr.Players.Add(name, time, firstLogin, lastLogin, points);
                 }
             }
         }

@@ -38,47 +38,40 @@ namespace TimeBasedRanks
         private static void AfkTimer(object sender, ElapsedEventArgs args)
         {
             /* TODO
-             * Add complex afk timer so IcyPhoenix's dumbass player's can't
+             * Add complex afk timer so IcyPhoenix's player's can't
              * bypass it in some unheard of weird way
              */
         }
 
         private static void UpdateTimer(object sender, ElapsedEventArgs args)
         {
-            foreach (var player in Tbr.tools.players.Where(player => player.online))
+            foreach (var player in Tbr.Players.Online)
             {
                 player.time += Tbr.config.IncrementTimeInterval;
 
-                if (player.index == -1) 
+                if (player.tsPlayer == null) 
                     continue;
 
-                player.points += (int)(Tbr.config.IncrementTimeInterval / Tbr.config.PointDivisor);
+                player.points += (Tbr.config.IncrementTimeInterval / Tbr.config.PointDivisor);
 
                 if (player.points < Tbr.config.Groups[player.Group].rankCost) 
                     continue;
 
-                if (player.GetNextGroupName == player.Group)
+                if (player.NextGroupName == player.Group)
                     continue;
 
                 player.points = 0;
                 
                 TShock.Users.SetUserGroup(
-                    TShock.Users.GetUserByName(player.name), player.GetNextGroupName);
+                    TShock.Users.GetUserByName(player.name), player.NextGroupName);
 
-                foreach (var cmd in player.RankInfo.commands)
-                {
-                    var command = cmd.StartsWith("/") ? cmd : "/" + cmd;
-                    Commands.HandleCommand(Tbr.config.UseConfigToExecuteRankUpCommands
-                        ? TSPlayer.Server
-                        : TShock.Players[player.index],
-                        command);
-                }
+                player.RankUp();
 
-                TShock.Players[player.index].SendWarningMessage("You have ranked up!");
-                TShock.Players[player.index].SendWarningMessage("Your current rank position: "
-                                                                + player.GetGroupPosition + " (" + player.Group + ")");
-                TShock.Players[player.index].SendWarningMessage("Your next rank: " + player.GetNextGroupName);
-                TShock.Players[player.index].SendWarningMessage("Next rank in: " + player.GetNextRankTime);
+                player.tsPlayer.SendWarningMessage("You have ranked up!");
+                player.tsPlayer.SendWarningMessage("Your current rank position: "
+                                                                + player.GroupPosition + " (" + player.Group + ")");
+                player.tsPlayer.SendWarningMessage("Your next rank: " + player.NextGroupName);
+                player.tsPlayer.SendWarningMessage("Next rank in: " + player.NextRankTime);
             }
         }
 
@@ -89,15 +82,15 @@ namespace TimeBasedRanks
 
         private static void AccountCheckTimer(object sender, ElapsedEventArgs args)
         {
-            foreach (var player in Tbr.tools.players.Where(player => !player.online))
+            foreach (var player in Tbr.Players.Offline)
             {
                 var group = TShock.Groups.GetGroupByName(player.Group);
                 if (group.HasPermission("tbr.ignorederank"))
                     continue;
 
-                var ts = (TimeSpan) player.GetLastOnline[0];
+                var ts = player.LastOnline;
 
-                if (ts.TotalSeconds < player.GetRankInfo.derankCost)
+                if (ts.TotalSeconds < player.RankInfo.derankCost)
                     continue;
 
                 var groupIndex = Tbr.config.Groups.Keys.ToList().IndexOf(player.Group) - 1;
@@ -107,7 +100,7 @@ namespace TimeBasedRanks
 
                 var user = TShock.Users.GetUserByName(player.name);
 
-                TShock.Users.SetUserGroup(user, Tbr.config.Groups.Keys.ToList()[groupIndex]);
+                TShock.Users.SetUserGroup(user, Tbr.config.Groups.Keys.ElementAt(groupIndex));
                 Log.ConsoleInfo(user.Name + " has been dropped a rank due to inactivity");
             }
         }

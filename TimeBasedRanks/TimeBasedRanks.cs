@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Data;
 using System.Linq;
@@ -14,23 +15,41 @@ using TShockAPI.Hooks;
 
 namespace TimeBasedRanks
 {
-    [ApiVersion(1,16)]
+    [ApiVersion(1, 16)]
     public class Tbr : TerrariaPlugin
     {
         private IDbConnection _db;
-        public static Tools tools;
         public static Database dbManager;
-        public static TRConfig config = new TRConfig();
+        public static TbrConfig config = new TbrConfig();
         private static TbrTimers _timers;
 
-        public override string Author { get { return "White"; } }
-        public override string Description { get { return "TShock group movements for users based on time played"; } }
-        public override string Name { get { return "Time Based Ranks"; } }
-        public override Version Version { get { return new Version(0, 1); } }
+        internal static readonly TbrPlayers Players = new TbrPlayers();
+
+        public override string Author
+        {
+            get { return "White"; }
+        }
+
+        public override string Description
+        {
+            get { return "TShock group movements for users based on time played"; }
+        }
+
+        public override string Name
+        {
+            get { return "Time Based Ranks"; }
+        }
+
+        public override Version Version
+        {
+            get { return new Version(0, 1); }
+        }
 
 
         public Tbr(Main game)
-            : base(game) { }
+            : base(game)
+        {
+        }
 
         protected override void Dispose(bool disposing)
         {
@@ -53,8 +72,6 @@ namespace TimeBasedRanks
 
         public override void Initialize()
         {
-            tools = new Tools();
-
             switch (TShock.Config.StorageType.ToLower())
             {
                 case "sqlite":
@@ -100,32 +117,14 @@ namespace TimeBasedRanks
         /// <param name="args"></param>
         private static void OnGreet(GreetPlayerEventArgs args)
         {
-            if (TShock.Players[args.Who] == null)
-                return;
-
             var ply = TShock.Players[args.Who];
 
-            if (!TShock.Config.DisableUUIDLogin)
-            {
-                if (ply.IsLoggedIn)
-                    PostLogin(new PlayerPostLoginEventArgs(ply));
-                else
-                {
-                    var player = new TrPlayer("~^" + ply.Name, 0,
-                        DateTime.UtcNow.ToString("G"), DateTime.UtcNow.ToString("G"), 0)
-                        {index = args.Who, online = true};
+            if (ply == null)
+                return;
 
-                    tools.players.Add(player);
-                }
-            }
-            else
-            {
-                var player = new TrPlayer("~^" + ply.Name, 0,
-                    DateTime.UtcNow.ToString("G"), DateTime.UtcNow.ToString("G"), 0) 
-                    {index = args.Who, online = true};
+            if (ply.IsLoggedIn)
+                PostLogin(new PlayerPostLoginEventArgs(ply));
 
-                tools.players.Add(player);
-            }
         }
 
         private static void OnLeave(LeaveEventArgs args)
@@ -135,25 +134,14 @@ namespace TimeBasedRanks
 
             var ply = TShock.Players[args.Who];
 
-            if (ply.IsLoggedIn)
-            {
-                if (tools.GetPlayerByName(ply.UserAccountName) == null)
-                    return;
+            if (!ply.IsLoggedIn) return;
 
-                var player = tools.GetPlayerByName(ply.UserAccountName);
-                dbManager.SavePlayer(player);
-                player.online = false;
-                player.index = -1;
-            }
-            else
-            {
-                if (tools.GetPlayerByName("~^" + ply.Name) == null)
-                    return;
+            var player = Players.GetByUsername(ply.UserAccountName);
+            if (player == null)
+                return;
 
-                var player = tools.GetPlayerByName("~^" + ply.Name);
-                player.online = false;
-                player.index = -1;
-            }
+            dbManager.SavePlayer(player);
+            player.tsPlayer = null;
         }
 
         /// <summary>
@@ -165,66 +153,39 @@ namespace TimeBasedRanks
             if (e.Player == null)
                 return;
 
+            var player = Players.GetByUsername(e.Player.UserAccountName);
 
-            if (tools.GetPlayerByName(e.Player.UserAccountName) != null)
-            {
-                var player = tools.GetPlayerByName(e.Player.UserAccountName);
-
-                player.index = e.Player.Index;
-                player.online = true;
-            }
+            if (player != null)
+                player.tsPlayer = e.Player;
 
             else
             {
-                if (tools.GetPlayerByName("~^" + e.Player.Name) != null)
-                {
-                    var player = tools.GetPlayerByName("~^" + e.Player.Name);
+                player = new TbrPlayer(e.Player.UserAccountName, 0, DateTime.UtcNow.ToString("G"),
+                    DateTime.UtcNow.ToString("G"), 0) {tsPlayer = e.Player};
+                Players.Add(player);
 
-                    player.name = e.Player.UserAccountName;
-                    player.index = e.Player.Index;
-
-                    player.online = true;
-
-                    if (!dbManager.InsertPlayer(player))
-                        Log.ConsoleError("[TimeRanks] Failed to create storage for {0}.", player.name);
-                    else
-                        Log.ConsoleInfo("[TimeRanks] Created storage for {0}.", player.name);
-                }
+                if (!dbManager.InsertPlayer(player))
+                    Log.ConsoleError("[TimeRanks] Failed to create storage for {0}.", player.name);
                 else
-                {
-                    var player = new TrPlayer(e.Player.UserAccountName, 0, DateTime.UtcNow.ToString("G"),
-                        DateTime.UtcNow.ToString("G"), 0) {index = e.Player.Index, online = true};
-
-                    tools.players.Add(player);
-
-                    if (!dbManager.InsertPlayer(player))
-                        Log.ConsoleError("[TimeRanks] Failed to create storage for {0}.", player.name);
-                    else
-                        Log.ConsoleInfo("[TimeRanks] Created storage for {0}.", player.name);
-                }
+                    Log.ConsoleInfo("[TimeRanks] Created storage for {0}.", player.name);
             }
 
-            if (!config.AutoStartUsers || e.Player.Group.Name != config.StartGroup || config.Groups.Keys.Count <= 0)
+
+            if (!config.AutoStartUsers || e.Player.Group.Name != config.StartGroup || config.Groups.Count < 1)
                 return;
 
             TShock.Users.SetUserGroup(
                 TShock.Users.GetUserByName(e.Player.UserAccountName),
                 config.Groups.Keys.ToList()[0]);
 
-            foreach (var cmd in tools.GetPlayerByName(e.Player.UserAccountName).RankInfo.commands)
-            {
-                var command = cmd.StartsWith("/") ? cmd : "/" + cmd;
-                Commands.HandleCommand(config.UseConfigToExecuteRankUpCommands
-                    ? TSPlayer.Server
-                    : e.Player,
-                    command);
-            }
+            if (TShock.Config.DisableUUIDLogin)
+                player.RankUp();
         }
 
         private void OnInitialize(EventArgs e)
         {
             var configPath = Path.Combine(TShock.SavePath, "TimeRanks.json");
-            (config = TRConfig.Read(configPath)).Write(configPath);
+            (config = TbrConfig.Read(configPath)).Write(configPath);
 
             _timers = new TbrTimers();
 
@@ -234,15 +195,15 @@ namespace TimeBasedRanks
                 if (String.Equals(config.StartGroup, config.Groups.Keys.ToList()[0],
                     StringComparison.CurrentCultureIgnoreCase))
                 {
-                    Log.ConsoleError("[Time Based Ranks] Initialization cancelled due to configuration error: " + 
-                        "StartGroup is the same as first rank name");
+                    Log.ConsoleError("[Time Based Ranks] Initialization cancelled due to configuration error: " +
+                                     "StartGroup is the same as first rank name");
 
                     ServerApi.Hooks.GameInitialize.Deregister(this, OnInitialize);
                     return;
                 }
 
             if (config.CreateNonExistantGroups)
-                Tools.CreateGroups();
+                CreateGroups();
 
             Commands.ChatCommands.Add(new Command("tbr.rank.check", Check, "check", "checktime", "ct")
             {
@@ -264,16 +225,9 @@ namespace TimeBasedRanks
             else
             {
                 TShock.Users.SetUserGroup(
-                    TShock.Users.GetUserByName(args.Player.UserAccountName),
-                    config.Groups.Keys.ToList()[0]);
-                foreach (var cmd in tools.GetPlayerByName(args.Player.UserAccountName).RankInfo.commands)
-                {
-                    var command = cmd.StartsWith("/") ? cmd : "/" + cmd;
-                    Commands.HandleCommand(config.UseConfigToExecuteRankUpCommands
-                        ? TSPlayer.Server
-                        : args.Player,
-                        command);
-                }
+                    TShock.Users.GetUserByName(args.Player.UserAccountName), config.Groups.Keys.ElementAt(0));
+
+                Players.GetByUsername(args.Player.UserAccountName).RankUp();
 
                 args.Player.SendSuccessMessage("Success! You will now gain ranks over time");
             }
@@ -284,39 +238,49 @@ namespace TimeBasedRanks
             if (args.Parameters.Count > 0)
             {
                 var str = string.Join(" ", args.Parameters);
-                var player = tools.GetPlayerListByName(str);
+                var players = Players.GetListByUsername(str).ToList();
+                var tsplayers = TShock.Utils.FindPlayer(str);
 
-                if (player.Count > 1)
-                    TShock.Utils.SendMultipleMatchError(args.Player, player.Select(p => p.name));
+                if (tsplayers.Count > 1)
+                    TShock.Utils.SendMultipleMatchError(args.Player, tsplayers.Select(p => p.Name));
+
+                if (players.Count > 1)
+                    TShock.Utils.SendMultipleMatchError(args.Player, players.Select(p => p.name));
 
                 else
-                    switch (player.Count)
+                    switch (players.Count)
                     {
                         case 0:
                             args.Player.SendErrorMessage("No player matched your query '{0}'", str);
                             break;
                         case 1:
-                            args.Player.SendSuccessMessage("{0}'s registration date: " + player[0].firstLogin,
-                                player[0].name);
-                            args.Player.SendSuccessMessage(
-                                "{0}'s total registered time: " + player[0].GetTotalRegisteredTime, player[0].name);
-                            args.Player.SendSuccessMessage("{0}'s total time played: " + player[0].GetTimePlayed,
-                                player[0].name);
+                            if (players[0] == null)
+                            {
+                                args.Player.SendErrorMessage("---");
+                                return;
+                            }
 
-                            if (player[0].online)
+                            args.Player.SendSuccessMessage("{0}'s registration date: " + players[0].firstLogin,
+                                players[0].name);
+                            args.Player.SendSuccessMessage(
+                                "{0}'s total registered time: " + players[0].TotalRegisteredTime, players[0].name);
+                            args.Player.SendSuccessMessage("{0}'s total time played: " + players[0].TimePlayed,
+                                players[0].name);
+
+                            if (players[0].Online)
                             {
                                 args.Player.SendSuccessMessage("{0}'s current rank position: " +
-                                                               player[0].GetGroupPosition + " (" + player[0].Group + ")",
-                                    player[0].name);
-                                args.Player.SendSuccessMessage("{0}'s next rank: " + player[0].GetNextGroupName,
-                                    player[0].name);
-                                args.Player.SendSuccessMessage("{0}'s next rank in: " + player[0].GetNextRankTime,
-                                    player[0].name);
+                                                               players[0].GroupPosition + " (" + players[0].Group + ")",
+                                    players[0].name);
+                                args.Player.SendSuccessMessage("{0}'s next rank: " + players[0].NextGroupName,
+                                    players[0].name);
+                                args.Player.SendSuccessMessage("{0}'s next rank in: " + players[0].NextRankTime,
+                                    players[0].name);
                             }
                             else
-                                args.Player.SendSuccessMessage("{0} was last online: " + player[0].lastLogin +
-                                                               " (" + player[0].GetLastOnline[1] + " ago)",
-                                                               player[0].name);
+                                args.Player.SendSuccessMessage("{0} was last online: " + players[0].lastLogin +
+                                                               " (" + players[0].LastOnline.ElapsedString() + " ago)",
+                                    players[0].name);
                             break;
                     }
             }
@@ -324,18 +288,37 @@ namespace TimeBasedRanks
             {
                 if (args.Player == TSPlayer.Server)
                 {
-                    args.Player.SendErrorMessage("Sorry, the server doesn't have stats to check (yet?)!");
+                    args.Player.SendErrorMessage("Sorry, the server doesn't have stats to check (yet?)");
                     return;
                 }
-                var player = tools.GetPlayerByName(args.Player.UserAccountName);
+                var player = Players.GetByUsername(args.Player.UserAccountName);
                 args.Player.SendSuccessMessage("Your registration date: " + player.firstLogin);
-                args.Player.SendSuccessMessage("Your total registered time: " + player.GetTotalRegisteredTime);
-                args.Player.SendSuccessMessage("Your total time played: " + player.GetTimePlayed);
-                args.Player.SendSuccessMessage("Your current rank position: " 
-                    + player.GetGroupPosition + " (" + player.Group + ")");
-                args.Player.SendSuccessMessage("Your next rank: " + player.GetNextGroupName);
-                args.Player.SendSuccessMessage("Next rank in: " + player.GetNextRankTime);
+                args.Player.SendSuccessMessage("Your total registered time: " + player.TotalRegisteredTime);
+                args.Player.SendSuccessMessage("Your total time played: " + player.TimePlayed);
+                args.Player.SendSuccessMessage("Your current rank position: "
+                                               + player.GroupPosition + " (" + player.Group + ")");
+                args.Player.SendSuccessMessage("Your next rank: " + player.NextGroupName);
+                args.Player.SendSuccessMessage("Next rank in: " + player.NextRankTime);
             }
+        }
+
+        /// <summary>
+        /// Creates TShock groups from groups defined in the configuration file, if they do not exist
+        /// </summary>
+        private static void CreateGroups()
+        {
+            var addedGroups = new List<string>();
+            if (config.Groups.Count > 0)
+                foreach (var group in
+                    config.Groups.Keys.Where(group => !TShock.Groups.GroupExists(group)))
+                {
+                    TShock.Groups.AddGroup(group, string.Empty);
+                    addedGroups.Add(group);
+                }
+
+            if (addedGroups.Count > 0)
+                Log.ConsoleInfo("[TimeRanks]: Auto-created {0} groups as defined in config: {1}",
+                    addedGroups.Count, string.Join(", ", addedGroups));
         }
     }
 }
